@@ -49,7 +49,10 @@ app.get('/home', requireAuth, (req, res) => {
       <p>You are now logged in!</p>
       <a href="/logout">Logout</a>
       <hr />
-      <a href="/profile">View Profile</a>
+      <ul>
+        <li><a href="/profile">My Profile</a></li>
+        <li><a href="/leaders">Leaders</a></li>
+      </ul>
   `),
   )
 })
@@ -78,7 +81,7 @@ app.get('/login', (req, res) => {
     response_type: 'code',
     redirect_uri: config.microsoft.redirectUri,
     response_mode: 'query',
-    scope: 'User.Read openid profile email',
+    scope: config.microsoft.scope,
   })
 
   res.redirect(`${config.microsoft.oauthUrl}/authorize?${params.toString()}`)
@@ -88,7 +91,9 @@ app.get('/logout', async (req: Request, res) => {
   delete req.session
   res.clearCookie('sessionId')
 
-  res.redirect(`${config.microsoft.oauthUrl}/logout?post_logout_redirect_uri=`)
+  res.redirect(
+    `${config.microsoft.oauthUrl}/logout?post_logout_redirect_uri=${config.remixUrl}`,
+  )
 })
 
 app.get('/auth/microsoft/callback', async (req: Request, res) => {
@@ -106,9 +111,11 @@ app.get('/auth/microsoft/callback', async (req: Request, res) => {
         code: code as string,
         redirect_uri: config.microsoft.redirectUri,
         client_secret: config.microsoft.clientSecret,
-        scope: 'openid profile email offline_access',
+        scope: config.microsoft.scope,
       }),
     })
+
+    console.log(response)
 
     const tokens = await response.json()
 
@@ -123,6 +130,40 @@ app.get('/auth/microsoft/callback', async (req: Request, res) => {
   }
 
   res.redirect('/home')
+})
+
+app.get('/leaders', requireAuth, async (req: Request, res) => {
+  const response = await fetch(
+    `${config.microsoft.graphUrl}/groups/${config.microsoft.leadersGroupId}/members?$select=id,displayName,mail`,
+    {
+      headers: {
+        Authorization: `Bearer ${req.session!.accessToken}`,
+      },
+    },
+  )
+
+  const {value: leaders} = (await response.json()) as {
+    value: {displayName: string; mail: string}[]
+  }
+
+  res.send(
+    render(`
+      <h1>Leaders</h1>
+      <hr />
+      <ul>
+        ${leaders
+          .map(
+            ({displayName, mail}) => `
+            <li>
+              <strong>${displayName}</strong> - ${mail}
+            </li>
+          `,
+          )
+          .join('')}
+      </ul>
+      <a href="/home">Go back</a>
+  `),
+  )
 })
 
 app.listen(config.remixPort, () => {

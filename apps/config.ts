@@ -5,6 +5,7 @@ const processEnvSchema = z.object({
   MICROSOFT_CLIENT_SECRET: z.string(),
   MICROSOFT_REDIRECT_URI: z.string(),
   MICROSOFT_TENANT_ID: z.string(),
+  MICROSOFT_LEADERS_GROUP_ID: z.string(),
 })
 
 processEnvSchema.parse(process.env)
@@ -14,6 +15,9 @@ const microsoft = {
   clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
   redirectUri: process.env.MICROSOFT_REDIRECT_URI,
   tenantId: process.env.MICROSOFT_TENANT_ID,
+  leadersGroupId: process.env.MICROSOFT_LEADERS_GROUP_ID,
+  scope:
+    'User.Read User.ReadBasic.All GroupMember.Read.All openid profile email',
   graphUrl: 'https://graph.microsoft.com/v1.0',
   loginUrl: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`,
   oauthUrl: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0`,
